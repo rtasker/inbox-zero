@@ -101,6 +101,32 @@ copyFileSync(
 );
 log("Added public/privacy.html.");
 
+// The first mail sync copies the whole mailbox from Gmail. Google Cloud
+// projects made after 1 May 2026 get a much lower Gmail quota, so a large
+// mailbox takes days, and send fails while the sync uses all of the quota.
+// Sync only recent mail. Search still finds older mail on the server.
+const firstSyncDays = 90;
+const sourceFile = path.join(web, "utils/mail-api/source.ts");
+let sourceCode = readFileSync(sourceFile, "utf8");
+const syncLimitChanges = [
+  [
+    /afterMs: afterMs \?\? 0,/g,
+    `afterMs: afterMs ?? Date.now() - ${firstSyncDays} * 86_400_000,`,
+  ],
+  [
+    /(pageToken: token\.pageToken,)(\s*)(includeDrafts: true,)/g,
+    "$1$2after: token.afterMs ? new Date(token.afterMs) : undefined,$2$3",
+  ],
+];
+for (const [pattern, replacement] of syncLimitChanges) {
+  if (sourceCode.match(pattern)?.length !== 1) {
+    fail(`${pattern} is not in utils/mail-api/source.ts exactly once.`);
+  }
+  sourceCode = sourceCode.replace(pattern, replacement);
+}
+writeFileSync(sourceFile, sourceCode);
+log(`Limited the first mail sync to the last ${firstSyncDays} days.`);
+
 // hobby/vercel-json.mjs saves the upstream install command in this file.
 const installCommand = readFileSync(
   path.join(root, "hobby/upstream-install-command.txt"),

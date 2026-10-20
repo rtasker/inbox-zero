@@ -11,8 +11,10 @@ different from upstream:
 
 - `install.mjs`: the Vercel install command. It removes the `maxDuration`
   exports (Hobby allows 12 functions), turns off Vercel Queues dispatch,
-  lowers the build memory, and copies `privacy.html` into `apps/web/public`.
-  Then it runs the upstream install command. It does not commit these
+  lowers the build memory, copies `privacy.html` into `apps/web/public`, and
+  limits the first mail sync to the last 90 days (`firstSyncDays`). New
+  Google Cloud projects get a low Gmail quota, so a full sync of a large
+  mailbox takes days. Then it runs the upstream install command. It does not commit these
   changes. The changes must come before the install: if `package.json`
   changes after it, pnpm installs again before each package build, and those
   parallel installs fail.
